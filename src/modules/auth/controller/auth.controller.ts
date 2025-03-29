@@ -12,11 +12,15 @@ export class AuthController {
       const data = LoginOrCreateUserInput.parse(req.body);
       const result = await this.authService.loginOrRegister(data);
 
-      res.status(200).json({ message: 'User Authenticated Successfully', data: result });
+      const message =
+        result.authType === 'register'
+          ? 'User Registered Successfully'
+          : 'User Authenticated Successfuly';
+
+      res.status(200).json({ message, data: result });
 
       return;
     } catch (error) {
-      
       logger.error(error, 'Error Authenticating user');
 
       res.status(500).json({ message: 'Error Authenticating user' });
@@ -54,4 +58,7 @@ export class AuthController {
       return;
     }
   }
+
+  // TODO: complete this feature
+  async passwordRest(req: Request, res: Response) {}
 }

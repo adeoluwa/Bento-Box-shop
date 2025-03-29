@@ -4,30 +4,22 @@ import {
   hashPassword,
   verifyPassword,
   generateToken,
-  verifyToken,
-  generateExpiry,
 } from '../../../core/utils/authUtils';
 
 import {
-  Auth,
   AuthResponse,
   LoginOrCreateUserInput,
   OtpInput,
-  OtpRequestResponse,
   verifyTokenInput,
 } from '../dto';
 import isEmail from 'validator/lib/isEmail';
 import { logger } from '../../../core/utils/logger';
 import {
-  InvalidOtpError,
   InvalidCredentialsError,
   UserNotFoundError,
-  OtpExpiredError,
   AuthorizationError,
-  AuthenticationError,
 } from '../../../shared/errors/auth.error';
-import { PrismaClient, User } from '@prisma/client';
-import prisma from '../../../core/utils/prisma';
+import { User } from '@prisma/client';
 
 enum AuthType {
   LOGIN = 'login',
@@ -119,18 +111,6 @@ export class AuthService {
       requiresVerification: true,
     });
   }
-
-  // private async validateOtp(email: string, code: string) {
-  //   try {
-  //     return await this.authRepository.validateOtp(email, code);
-  //   } catch (error) {
-  //     if (error instanceof OtpExpiredError) {
-  //       await this.authRepository.deleteExpiredOtps();
-  //     }
-
-  //     throw error;
-  //   }
-  // }
 
   private validateEmail(email: string) {
     if (!isEmail(email)) throw new Error('Please use a valid email');
