@@ -15,3 +15,4 @@ export type AppContainer = AwilixContainer & {
 export type Loader<T, O = object> = (
   opt: {container: AppContainer} & O,
 ) => T | Promise<T>;
+

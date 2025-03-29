@@ -17,9 +17,13 @@ datasource db {
 model User {
   id        String    @id @default(uuid())
   email     String    @unique
+  first_name String?
+  last_name  String?
   password  String    
-  phone_number String
-  address       String
+  phone_number String?
+  address       String?
+  is_verified   Boolean  @default(false)
+  verified_at   DateTime?
   created_at    DateTime   @default(now())
   updated_at    DateTime   @updatedAt
 
@@ -27,15 +31,28 @@ model User {
   orders        Order[]
   cart          Cart?
   payments      Payment[]
+  Otp           Otp?
 
   @@map("users")
 }
 
+model Otp {
+  user_id    String      @unique
+  user       User?        @relation(fields: [user_id], references: [id])
+  code       String
+  email      String
+  created_at  DateTime   @default(now())
+  expires_at  DateTime   
+
+  @@map("otps")
+}
+
 model Session {
   id           String   @id @default(uuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user_id       String   @unique
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   token        String  @unique
+  email        String
   expires_at   DateTime
   created_at   DateTime  @default(now())
 
@@ -71,8 +88,8 @@ model Product {
 
 model Cart {
   id        String   @default(uuid()) @unique
-  userId     String  @unique
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user_id     String  @unique
+  user       User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
   items      CartItem[]
 
   @@map("carts")

@@ -4,6 +4,7 @@ import { Express as E } from 'express';
 declare namespace Express {
   export interface Request {
     scope: unknown;
+    user?:any
   }
 }
 
