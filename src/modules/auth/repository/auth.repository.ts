@@ -37,14 +37,15 @@ export class AuthRepository {
   async createOrUpdateOtp(userId: string, code: string, email: string) {
     const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    return prisma.otp.upsert({
+    await prisma.otp.deleteMany({
       where: { user_id: userId },
-      update: { code, created_at: new Date(), expires_at: expiresAt },
-      create: {
+    });
+
+    return prisma.otp.create({
+      data: {
         user_id: userId,
         email,
         code,
-        created_at: new Date(),
         expires_at: expiresAt,
       },
     });
@@ -59,7 +60,7 @@ export class AuthRepository {
   async getOtpByEmail(email: string) {
     const otp = await prisma.otp.findFirst({
       where: { email },
-      select: { user_id: true },
+      select: { user_id: true, expires_at: true, code: true },
     });
 
     if (!otp) throw new Error('OTP not found for this email');
@@ -70,7 +71,9 @@ export class AuthRepository {
   }
 
   async deleteOtp(userId: string) {
-    return await prisma.otp.delete({
+    await this.deleteExpiredOtps();
+
+    return await prisma.otp.deleteMany({
       where: { user_id: userId },
     });
   }
@@ -98,24 +101,26 @@ export class AuthRepository {
     });
   }
 
-  async validateOtp(email: string, code: string): Promise<{ userId: string }> {
-    const otp = await prisma.otp.findFirst({
+  async validateOtp(email: string, code: string) {
+    const otpRecord = await prisma.otp.findFirst({
       where: {
         email,
+        code,
         expires_at: { gt: new Date() },
       },
-      orderBy: { created_at: 'desc' },
     });
 
-    if (!otp) {
-      await this.deleteExpiredOtps();
+    console.log('Fetched OTP Record:', otpRecord);
+    console.log(`Current Time: ${new Date()}, OTP Expiry: ${otpRecord?.expires_at}`);
+
+    if (!otpRecord) {
       throw new OtpExpiredError('OTP expired or invalid');
     }
 
-    if (otp.code !== code) {
+    if (otpRecord.code !== code) {
       throw new InvalidOtpError('Invalid OTP code');
     }
 
-    return { userId: otp.user_id };
+    return { userId: otpRecord.user_id, email: otpRecord.email };
   }
 }

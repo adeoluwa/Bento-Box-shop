@@ -3,13 +3,10 @@ import { generateExpiry } from '../../../core/utils/authUtils';
 
 export class SessionRepository {
   async createSession(email: string, token: string, userId: string) {
-    return await prisma.session.create({
-      data: {
-        user_id: userId,
-        token,
-        email,
-        expires_at: generateExpiry(),
-      },
+    return await prisma.session.upsert({
+      where: { user_id: userId },
+      update: { token, expires_at: generateExpiry() },
+      create: { user_id: userId, email, token, expires_at: generateExpiry() },
     });
   }
 

@@ -29,6 +29,10 @@ import {
 import { PrismaClient, User } from '@prisma/client';
 import prisma from '../../../core/utils/prisma';
 
+enum AuthType {
+  LOGIN = 'login',
+  REGISTER = 'register',
+}
 export class AuthService {
   constructor(
     private authRepository: AuthRepository = new AuthRepository(),
@@ -53,7 +57,7 @@ export class AuthService {
     if (!user) throw new UserNotFoundError('User account does not exist');
 
     const otp = this.generateOtpCode();
-    await this.authRepository.createOrUpdateOtp(user.id, user.email, otp);
+    await this.authRepository.createOrUpdateOtp(user.id, otp, user.email);
 
     this.sendOtpToUser(user.email, otp);
 
@@ -76,14 +80,9 @@ export class AuthService {
       return this.buildAuthResponse({
         token,
         user,
-        authType: 'login',
+        authType: AuthType.LOGIN,
       });
     } catch (error) {
-      if (error instanceof OtpExpiredError) {
-        await this.requestOtp({ email });
-        throw new AuthorizationError('OTP expired. A new OTP has been sent');
-      }
-
       throw error;
     }
   }
@@ -103,7 +102,7 @@ export class AuthService {
     return this.buildAuthResponse({
       token,
       user,
-      authType: 'login',
+      authType: AuthType.LOGIN,
     });
   }
 
@@ -116,22 +115,22 @@ export class AuthService {
     return this.buildAuthResponse({
       token: null,
       user: newUser,
-      authType: 'register',
+      authType: AuthType.REGISTER,
       requiresVerification: true,
     });
   }
 
-  private async validateOtp(email: string, code: string) {
-    try {
-      return await this.authRepository.validateOtp(email, code);
-    } catch (error) {
-      if (error instanceof OtpExpiredError) {
-        await this.authRepository.deleteExpiredOtps();
-      }
+  // private async validateOtp(email: string, code: string) {
+  //   try {
+  //     return await this.authRepository.validateOtp(email, code);
+  //   } catch (error) {
+  //     if (error instanceof OtpExpiredError) {
+  //       await this.authRepository.deleteExpiredOtps();
+  //     }
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
   private validateEmail(email: string) {
     if (!isEmail(email)) throw new Error('Please use a valid email');
@@ -144,7 +143,7 @@ export class AuthService {
   private buildAuthResponse(params: {
     token: string | null;
     user: User;
-    authType: 'login' | 'register';
+    authType: AuthType;
     requiresVerification?: boolean;
   }): AuthResponse {
     return {
